@@ -6,18 +6,18 @@ import logging
 import sys
 import time
 
-name = "Dichotomy"
 
 load_dotenv()
+name = "Dichotomy"
 bot = discord.Bot()
 token = os.getenv("TOKEN")
-
 intents = discord.Intents.default()
 intents.message_content = True
 botClient = discord.Client(intents=intents)
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 vibeDevice: buttplug.Device
 vibeClient: buttplug.Client
+
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 
 async def updateStatus(num):
@@ -31,16 +31,20 @@ async def updateStatus(num):
 @botClient.event
 async def on_message(message):
     global vibeClient
-    if message.author == botClient.user:  # | message.author == 208273752956338198:
-        return
-
     strength = 1
+
+    if (
+        message.channel
+        != 1238171375634485311 | message.author
+        == botClient.user | message.author
+        == 208273752956338198
+    ):
+        return
 
     if "very" in message.content:
         strength = 2
     if "extremely" in message.content:
         strength = 3
-
     if "good fox" in message.content:
         await message.add_reaction("🪄")
         await reward_fox(strength)
@@ -68,29 +72,23 @@ async def on_ready():
     global vibeDevice
     global vibeClient
     connected = 0
-
-    await updateStatus(connected)
-
     vibeClient = buttplug.Client(name, buttplug.ProtocolSpec.v3)
     connector = buttplug.WebsocketConnector(
         "ws://127.0.0.1:12345", logger=vibeClient.logger
     )
+
+    await updateStatus(connected)
     try:
         await vibeClient.connect(connector)
-
         if len(vibeClient.devices) == 0:
             logging.error("No devices connected to Intifcae")
             return
-
         vibeDevice = vibeClient.devices[0]
-
         if len(vibeDevice.actuators) == 0:
             logging.error("Wrong Intiface device connected")
             return
-
         connected += 1
         await updateStatus(connected)
-
     except Exception as e:
         logging.error(f"Could not connect to server, exiting: {e}")
 
