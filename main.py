@@ -8,7 +8,7 @@ import time
 
 
 load_dotenv()
-name = "Dichotomy"
+bot_name = "Dichotomy"
 bot = discord.Bot()
 token = os.getenv("TOKEN")
 channel_id = os.getenv("CHANNEL_ID")
@@ -36,9 +36,10 @@ async def on_message(message):
     strength = 1
 
     if (
-        message.channel != channel_id | 
-        message.author == bot_client.user | 
-        message.author == sub_id
+        message.channel
+        != channel_id | message.author
+        == bot_client.user | message.author
+        == sub_id
     ):
         return
 
@@ -70,10 +71,9 @@ async def punish_fox(strength):
 
 @bot_client.event
 async def on_ready():
-    global vibe_device
-    global vibe_client
+    global vibe_device, vibe_client
     connected = 0
-    vibe_client = buttplug.Client(name, buttplug.ProtocolSpec.v3)
+    vibe_client = buttplug.Client(bot_name, buttplug.ProtocolSpec.v3)
     connector = buttplug.WebsocketConnector(
         "ws://127.0.0.1:12345", logger=vibe_client.logger
     )
@@ -91,8 +91,7 @@ async def on_ready():
         connected += 1
         await update_status(connected)
     except Exception as e:
-        logging.error(f"Could not connect to server, exiting: {e}")
-
+        logging.error(f"Could not connect to intiface server: {e}")
 
 @bot_client.event
 async def on_disconnect():
