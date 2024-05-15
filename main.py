@@ -5,21 +5,47 @@ import buttplug
 import logging
 import sys
 import time
-
+import requests
 
 load_dotenv()
 bot_name = "Dichotomy"
 bot = discord.Bot()
 token = os.getenv("TOKEN")
-channel_id = os.getenv("CHANNEL_ID")
+channel_id = int(os.getenv("CHANNEL_ID"))
 sub_id = os.getenv("SUB_ID")
+shock_key = os.getenv("SHOCK_KEY")
+shock_id = os.getenv("SHOCK_ID")
 intents = discord.Intents.default()
 intents.message_content = True
 bot_client = discord.Client(intents=intents)
 vibe_device: buttplug.Device
 vibe_client: buttplug.Client
-
+shock_api = "https://api.shocklink.net/"
+headers = {
+    "Content-type": "application/json",
+    "accept": "application/json",
+    "OpenShockToken": shock_key,
+}
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+
+
+async def control_shocker(type: str, intensity: int, duration: int):
+    return requests.post(
+        shock_api + "2/shockers/control",
+        json={
+            "shocks": [
+                {
+                    "id": shock_id,
+                    "type": type,
+                    "intensity": intensity,
+                    "duration": duration * 300,
+                    "exclusive": True,
+                }
+            ],
+            "customName": "string",
+        },
+        headers=headers,
+    )
 
 
 async def update_status(num):
@@ -35,12 +61,8 @@ async def on_message(message):
     global vibe_client
     strength = 1
 
-    if (
-        message.channel
-        != channel_id | message.author
-        == bot_client.user | message.author
-        == sub_id
-    ):
+    if (message.channel.id != channel_id or message.author == bot_client.user): #| 
+        #message.author == sub_id
         return
 
     if "very" in message.content:
@@ -66,7 +88,7 @@ async def reward_fox(strength):
 
 
 async def punish_fox(strength):
-    None
+    await control_shocker("Vibrate", strength, 1)
 
 
 @bot_client.event
@@ -92,6 +114,14 @@ async def on_ready():
         await update_status(connected)
     except Exception as e:
         logging.error(f"Could not connect to intiface server: {e}")
+
+    response = await control_shocker("Sound", 1, 1)
+    if response.ok:
+        connected += 1
+        await update_status(connected)
+    else:
+        logging.error(f"Could not connect to shocker: {response.content}")
+
 
 @bot_client.event
 async def on_disconnect():
