@@ -61,18 +61,17 @@ async def on_message(message):
     global vibe_client
     strength = 1
 
-    if (message.channel.id != channel_id or message.author == bot_client.user): #| 
-        #message.author == sub_id
+    if (message.channel.id != channel_id or message.author == bot_client.user or message.author == sub_id):
         return
 
-    if "very" in message.content:
+    if "very" in message.content.lower():
         strength = 2
-    if "extremely" in message.content:
+    if "extremely" in message.content.lower():
         strength = 3
-    if "good fox" in message.content:
+    if "good fox" in message.content.lower():
         await message.add_reaction("🪄")
         await reward_fox(strength)
-    elif "bad fox" in message.content:
+    elif "bad fox" in message.content.lower():
         await message.add_reaction("🔌")
         await punish_fox(strength)
     elif message.content == "$RetryConnect":
@@ -88,7 +87,7 @@ async def reward_fox(strength):
 
 
 async def punish_fox(strength):
-    await control_shocker("Vibrate", strength, 1)
+    await control_shocker("Shock", strength, 1)
 
 
 @bot_client.event
