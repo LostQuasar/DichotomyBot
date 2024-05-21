@@ -1,0 +1,3 @@
+buttplug-py==0.2.0
+python-dotenv==1.0.1
+py-cord==2.5.0
