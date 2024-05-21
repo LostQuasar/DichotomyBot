@@ -15,6 +15,7 @@ channel_id = int(os.getenv("CHANNEL_ID"))
 sub_id = os.getenv("SUB_ID")
 shock_key = os.getenv("SHOCK_KEY")
 shock_id = os.getenv("SHOCK_ID")
+term = os.getenv("TERM")
 intents = discord.Intents.default()
 intents.message_content = True
 bot_client = discord.Client(intents=intents)
@@ -68,25 +69,25 @@ async def on_message(message):
         strength = 2
     if "extremely" in message.content.lower():
         strength = 3
-    if "good fox" in message.content.lower():
+    if "good "+term in message.content.lower():
         await message.add_reaction("🪄")
-        await reward_fox(strength)
-    elif "bad fox" in message.content.lower():
+        await reward(strength)
+    elif "bad "+term in message.content.lower():
         await message.add_reaction("🔌")
-        await punish_fox(strength)
+        await punish(strength)
     elif message.content == "$RetryConnect":
         await vibe_client.disconnect()
         await on_ready()
 
 
-async def reward_fox(strength):
+async def reward(strength):
     global vibe_device
     await vibe_device.actuators[0].command(strength / 10)
     time.sleep(strength)
     await vibe_device.actuators[0].command(0)
 
 
-async def punish_fox(strength):
+async def punish(strength):
     await control_shocker("Shock", strength, 1)
 
 

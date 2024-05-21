@@ -16,9 +16,10 @@
     SUB_ID="THE USER WHICH IS GETTING SHOCKED"
     SHOCK_KEY="THE SHOCKLINK API KEY FOR THE BOT TO EXECUTE SHOCK TO"
     SHOCK_ID="THE ID OF THE SHOCKER TO SHOCK"
+    TERM="TERM TO SEARCH FOR FOR ACTION"
     ```
 
 2. Start Intiface and connect a device
 3. Ensure the Openshock controller is connected and online
 4. Start the script and check for any errors
-5. Listen for the beep, the shocker should beep if it is succesfully connected
+5. Listen for the beep, the shocker should beep if it is successfully connected
