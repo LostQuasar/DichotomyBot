@@ -23,6 +23,8 @@ bot_client = discord.Client(intents=intents)
 vibe_device: buttplug.Device
 vibe_client: buttplug.Client
 shocker: shock_api.shocker
+limits = [2, 4, 6]
+
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
@@ -56,7 +58,7 @@ async def on_message(message):
         await reward(strength)
     elif "bad " + term in message.content.lower():
         await message.add_reaction("🔌")
-        await punish(strength)
+        await shocker.control(ControlType.SHOCK, limits[strength - 1], strength*300, message.author.display_name)
     elif message.content == "$RetryConnect":
         await vibe_client.disconnect()
         await on_ready()
@@ -68,10 +70,6 @@ async def reward(strength):
         await vibe_device.actuators[0].command(strength / 10)
         time.sleep(strength)
         await vibe_device.actuators[0].command(0)
-
-async def punish(strength):
-    await shocker.control(ControlType.SHOCK, strength, strength*300)
-
 
 @bot_client.event
 async def on_ready():
@@ -99,7 +97,7 @@ async def on_ready():
 
     shocker_api = shock_api(shock_key)
     shocker = shocker_api.create_shocker(shock_id)
-    response = shocker.control(ControlType.SOUND, 1, 300, "Dichotomy")
+    response = await shocker.control(ControlType.SOUND, 1, 300, "Dichotomy")
 
     if response.ok:
         connected += 1

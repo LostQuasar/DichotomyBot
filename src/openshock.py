@@ -1,10 +1,12 @@
 from enum import Enum
 import requests
 
+
 class ControlType(Enum):
     VIBRATE = "Vibrate"
     SHOCK = "Shock"
     SOUND = "Sound"
+
 
 class shock_api:
     def __init__(self, api_key, url: str = "https://api.shocklink.net/"):
@@ -14,7 +16,7 @@ class shock_api:
             "accept": "application/json",
             "OpenShockToken": api_key,
         }
-    
+
     def create_shocker(self, shocker_id):
         return self.shocker(self, shocker_id)
 
@@ -24,7 +26,20 @@ class shock_api:
             self.parent = parent
             self.shocker_id = shocker_id
 
-        def control(self, type: ControlType, intensity: int, duration: int, author: str):
+        async def control(
+            self, type: ControlType, intensity: int, duration: int, author: str
+        ):
+            """Send a control signal to the shocker
+
+            Args:
+                type (ControlType) Shock, Vibrate or Sound
+                intensity (int): 1 - 100
+                duration (int): 300 - 30 000 measured in ms
+                author (str): Name to appear on the log
+
+            Returns:
+                Response: status of the post request
+            """
             return requests.post(
                 self.parent.url + "2/shockers/control",
                 json={
