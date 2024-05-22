@@ -5,7 +5,7 @@ import buttplug
 import logging
 import sys
 import time
-import requests
+from openshock import ControlType, shock_api
 
 load_dotenv()
 bot_name = "Dichotomy"
@@ -16,37 +16,15 @@ sub_id = os.getenv("SUB_ID")
 shock_key = os.getenv("SHOCK_KEY")
 shock_id = os.getenv("SHOCK_ID")
 term = os.getenv("TERM")
+
 intents = discord.Intents.default()
 intents.message_content = True
 bot_client = discord.Client(intents=intents)
 vibe_device: buttplug.Device
 vibe_client: buttplug.Client
-shock_api = "https://api.shocklink.net/"
-headers = {
-    "Content-type": "application/json",
-    "accept": "application/json",
-    "OpenShockToken": shock_key,
-}
+shocker: shock_api.shocker
+
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-
-
-async def control_shocker(type: str, intensity: int, duration: int):
-    return requests.post(
-        shock_api + "2/shockers/control",
-        json={
-            "shocks": [
-                {
-                    "id": shock_id,
-                    "type": type,
-                    "intensity": intensity,
-                    "duration": duration * 300,
-                    "exclusive": True,
-                }
-            ],
-            "customName": "string",
-        },
-        headers=headers,
-    )
 
 
 async def update_status(num):
@@ -62,17 +40,21 @@ async def on_message(message):
     global vibe_client
     strength = 1
 
-    if (message.channel.id != channel_id or message.author == bot_client.user or message.author == sub_id):
+    if (
+        message.channel.id != channel_id
+        or message.author == bot_client.user
+        or message.author == sub_id
+    ):
         return
 
     if "very" in message.content.lower():
         strength = 2
     if "extremely" in message.content.lower():
         strength = 3
-    if "good "+term in message.content.lower():
+    if "good " + term in message.content.lower():
         await message.add_reaction("🪄")
         await reward(strength)
-    elif "bad "+term in message.content.lower():
+    elif "bad " + term in message.content.lower():
         await message.add_reaction("🔌")
         await punish(strength)
     elif message.content == "$RetryConnect":
@@ -82,18 +64,18 @@ async def on_message(message):
 
 async def reward(strength):
     global vibe_device
-    await vibe_device.actuators[0].command(strength / 10)
-    time.sleep(strength)
-    await vibe_device.actuators[0].command(0)
-
+    if vibe_device:
+        await vibe_device.actuators[0].command(strength / 10)
+        time.sleep(strength)
+        await vibe_device.actuators[0].command(0)
 
 async def punish(strength):
-    await control_shocker("Shock", strength, 1)
+    await shocker.control(ControlType.SHOCK, strength, strength*300)
 
 
 @bot_client.event
 async def on_ready():
-    global vibe_device, vibe_client
+    global vibe_device, vibe_client, shocker
     connected = 0
     vibe_client = buttplug.Client(bot_name, buttplug.ProtocolSpec.v3)
     connector = buttplug.WebsocketConnector(
@@ -108,14 +90,17 @@ async def on_ready():
             return
         vibe_device = vibe_client.devices[0]
         if len(vibe_device.actuators) == 0:
-            logging.error("Wrong Intiface device connected")
+            logging.error("Invalid Intiface device connected")
             return
         connected += 1
         await update_status(connected)
     except Exception as e:
-        logging.error(f"Could not connect to intiface server: {e}")
+        logging.error(f"Could not connect to Intiface server: {e}")
 
-    response = await control_shocker("Sound", 1, 1)
+    shocker_api = shock_api(shock_key)
+    shocker = shocker_api.create_shocker(shock_id)
+    response = shocker.control(ControlType.SOUND, 1, 300, "Dichotomy")
+
     if response.ok:
         connected += 1
         await update_status(connected)
