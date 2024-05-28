@@ -1,14 +1,12 @@
 from enum import Enum
 import requests
 
-
 class ControlType(Enum):
     VIBRATE = "Vibrate"
     SHOCK = "Shock"
     SOUND = "Sound"
 
-
-class shock_api:
+class openshock_api:
     def __init__(self, api_key, url: str = "https://api.shocklink.net/"):
         self.url = url
         self.headers = {
@@ -27,7 +25,7 @@ class shock_api:
             self.shocker_id = shocker_id
 
         async def control(
-            self, type: ControlType, intensity: int, duration: int, author: str
+            self, type: ControlType, intensity: int, duration: int, author: str, exclusive:bool = True
         ):
             """Send a control signal to the shocker
 
@@ -49,7 +47,7 @@ class shock_api:
                             "type": type.value,
                             "intensity": intensity,
                             "duration": duration,
-                            "exclusive": True,
+                            "exclusive": exclusive,
                         }
                     ],
                     "customName": author,

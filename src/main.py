@@ -5,7 +5,8 @@ import buttplug
 import logging
 import sys
 import time
-from openshock import ControlType, shock_api
+import json
+from openshock import ControlType, openshock_api
 
 load_dotenv()
 bot_name = "Dichotomy"
@@ -22,9 +23,17 @@ intents.message_content = True
 bot_client = discord.Client(intents=intents)
 vibe_device: buttplug.Device
 vibe_client: buttplug.Client
-shocker: shock_api.shocker
-limits = [2, 4, 6]
+shocker: openshock_api.shocker
 
+config_default = {
+    "ShockLow": 2,
+    "ShockHigh": 6,
+    "VibeLow": 2,
+    "VibeHigh": 6,
+    "Duration": 300,
+}
+
+config = None
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
@@ -37,10 +46,19 @@ async def update_status(num):
     )
 
 
+async def update_config(key, value):
+    if key in config.keys():
+        config[key] = value
+        with open("config.json", "w") as file_config:
+            json.dump(config, file_config, indent=2)
+    else:
+        logging.error("Config key provided is invalid")
+
+
 @bot_client.event
 async def on_message(message):
     global vibe_client
-    strength = 1
+    strong = False
 
     if (
         message.channel.id != channel_id
@@ -50,26 +68,40 @@ async def on_message(message):
         return
 
     if "very" in message.content.lower():
-        strength = 2
-    if "extremely" in message.content.lower():
-        strength = 3
+        strong = True
     if "good " + term in message.content.lower():
         await message.add_reaction("🪄")
-        await reward(strength)
+        await reward(strong)
     elif "bad " + term in message.content.lower():
         await message.add_reaction("🔌")
-        await shocker.control(ControlType.SHOCK, limits[strength - 1], strength*300, message.author.display_name)
-    elif message.content == "$RetryConnect":
+        await shocker.control(
+            ControlType.SHOCK,
+            config["ShockHigh" if strong else "ShockLow"],
+            config["Duration"],
+            message.author.display_name,
+        )
+    if message.content == "$RetryConnect":
         await vibe_client.disconnect()
         await on_ready()
 
+    if "$Config" in message.content:
+        split_message = message.content.split(" ")
+        try:
+            await update_config(split_message[1], int(split_message[2]))
+            await message.add_reaction("✅")
+        except Exception as e:
+            logging.error(f"Error occurred while updating config: {e}")
 
-async def reward(strength):
+
+async def reward(strong: bool):
     global vibe_device
     if vibe_device:
-        await vibe_device.actuators[0].command(strength / 10)
-        time.sleep(strength)
+        await vibe_device.actuators[0].command(
+            ("VibeHigh" if strong else "VibeLow") / 10
+        )
+        time.sleep(config["Duration"])
         await vibe_device.actuators[0].command(0)
+
 
 @bot_client.event
 async def on_ready():
@@ -84,7 +116,7 @@ async def on_ready():
     try:
         await vibe_client.connect(connector)
         if len(vibe_client.devices) == 0:
-            logging.error("No devices connected to Intifcae")
+            logging.error("No devices connected to Intiface")
             return
         vibe_device = vibe_client.devices[0]
         if len(vibe_device.actuators) == 0:
@@ -95,7 +127,7 @@ async def on_ready():
     except Exception as e:
         logging.error(f"Could not connect to Intiface server: {e}")
 
-    shocker_api = shock_api(shock_key)
+    shocker_api = openshock_api(shock_key)
     shocker = shocker_api.create_shocker(shock_id)
     response = await shocker.control(ControlType.SOUND, 1, 300, "Dichotomy")
 
@@ -103,7 +135,9 @@ async def on_ready():
         connected += 1
         await update_status(connected)
     else:
-        logging.error(f"Could not connect to shocker: {response.content}")
+        logging.error(
+            f"Could not connect to shocker: {json.loads(response.content)['message']}"
+        )
 
 
 @bot_client.event
@@ -111,4 +145,15 @@ async def on_disconnect():
     await vibe_client.disconnect()
 
 
-bot_client.run(token)
+if __name__ == "__main__":
+    try:
+        with open("config.json", "r") as file_config:
+            config = json.load(file_config)
+    except:
+        logging.warn("Config loading failed.")
+
+    if not config:
+        with open("config.json", "w+") as file_config:
+            json.dump(config_default, file_config, indent=2)
+
+    bot_client.run(token)
