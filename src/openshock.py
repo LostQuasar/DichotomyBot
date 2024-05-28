@@ -31,7 +31,7 @@ class openshock_api:
 
             Args:
                 type (ControlType) Shock, Vibrate or Sound
-                intensity (int): 1 - 100
+                intensity (int): 1 - 100 percentage
                 duration (int): 300 - 30 000 measured in ms
                 author (str): Name to appear on the log
 

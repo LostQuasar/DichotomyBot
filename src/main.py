@@ -84,7 +84,7 @@ async def on_message(message):
         await vibe_client.disconnect()
         await on_ready()
 
-    if "$Config" in message.content:
+    if "$Config" in message.content and message.author == sub_id:
         split_message = message.content.split(" ")
         try:
             await update_config(split_message[1], int(split_message[2]))
